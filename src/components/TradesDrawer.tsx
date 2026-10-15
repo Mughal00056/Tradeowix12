@@ -1,9 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { TradeOrder, Asset } from '../types/trading';
 import { AssetIcon } from './AssetIcon';
-import { X, Clock, CheckCircle2, XCircle, ChevronLeft, Briefcase } from 'lucide-react';
+import { X, ChevronDown, Clock, CheckCircle2, XCircle, ChevronLeft, ArrowUpRight, ArrowDownRight, Briefcase } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { useGsapModal, useGsapStagger } from '../utils/gsapAnimations';
 
 interface TradesDrawerProps {
   openTrades: TradeOrder[];
@@ -22,13 +21,7 @@ export const TradesDrawer: React.FC<TradesDrawerProps> = ({
   onClose,
   onSelectTrade,
 }) => {
-  const [tab, setTab] = useState<'open' | 'closed'>('open');
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useGsapModal(backdropRef, panelRef, 'up');
-  useGsapStagger(listRef, '.gsap-stagger-item', [tab, openTrades.length, closedTrades.length]);
+  const [tab, setTab] = useState<'open' | 'closed'>(openTrades.length > 0 ? 'open' : 'closed');
 
   const totalPL = openTrades.reduce((acc, t) => {
     const cur = currentPrices[t.assetId] || t.entryPrice;
@@ -40,15 +33,9 @@ export const TradesDrawer: React.FC<TradesDrawerProps> = ({
   }, 0);
 
   return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl select-none overflow-hidden"
-    >
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-hidden">
       {/* Full Screen Glass Container */}
-      <div
-        ref={panelRef}
-        className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative"
-      >
+      <div className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative">
         {/* Soft pastel ambient background orbs */}
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-emerald-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
@@ -73,7 +60,7 @@ export const TradesDrawer: React.FC<TradesDrawerProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                    Trades & Portfolio
+                    Trade History
                   </h1>
                   {openTrades.length > 0 && (
                     <span className="w-5 h-5 rounded-full bg-[#6366f1] text-white flex items-center justify-center text-[10px] font-bold font-mono-numbers">
@@ -144,10 +131,7 @@ export const TradesDrawer: React.FC<TradesDrawerProps> = ({
         </div>
 
         {/* Scrollable list */}
-        <div
-          ref={listRef}
-          className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-3 max-w-5xl mx-auto w-full custom-scrollbar"
-        >
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-3 max-w-5xl mx-auto w-full custom-scrollbar">
           {tab === 'open' ? (
             openTrades.length === 0 ? (
               <div className="py-24 text-center">
@@ -178,7 +162,7 @@ export const TradesDrawer: React.FC<TradesDrawerProps> = ({
                       onSelectTrade?.(t);
                       onClose();
                     }}
-                    className="gsap-stagger-item p-4 bg-white/75 backdrop-blur-xl rounded-2xl border border-white/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex items-center justify-between cursor-pointer group"
+                    className="p-4 bg-white/75 backdrop-blur-xl rounded-2xl border border-white/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all flex items-center justify-between cursor-pointer group"
                     title="Tap to show on chart"
                   >
                     <div className="flex items-center gap-3.5">
@@ -192,7 +176,7 @@ export const TradesDrawer: React.FC<TradesDrawerProps> = ({
                             <Clock className="w-3.5 h-3.5 text-indigo-500" />
                             00:{remainingSec.toString().padStart(2, '0')}
                           </span>
-                          <span>·</span>
+                          <span>•</span>
                           <span>Strike: {t.entryPrice.toFixed(4)}</span>
                         </div>
                       </div>
@@ -232,7 +216,7 @@ export const TradesDrawer: React.FC<TradesDrawerProps> = ({
                   onSelectTrade?.(t);
                   onClose();
                 }}
-                className="gsap-stagger-item p-4 bg-white/75 backdrop-blur-xl rounded-2xl border border-white/80 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all flex items-center justify-between cursor-pointer group"
+                className="p-4 bg-white/75 backdrop-blur-xl rounded-2xl border border-white/80 shadow-2xs hover:shadow-md hover:border-indigo-300 transition-all flex items-center justify-between cursor-pointer group"
                 title="Tap to show trade on graph"
               >
                 <div className="flex items-center gap-3">

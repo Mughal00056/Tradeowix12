@@ -1,114 +1,105 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(ScrollTrigger);
 
 /**
  * Animates a modal backdrop and content container on mount using GSAP.
  */
-export function useGsapModal(
-  backdropRef: React.RefObject<HTMLElement | null>,
-  panelRef: React.RefObject<HTMLElement | null>,
-  direction: 'up' | 'right' | 'scale' = 'up'
-) {
+export function useGsapModal(isOpen: boolean = true) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+
     const ctx = gsap.context(() => {
-      if (backdropRef.current) {
+      // Backdrop fade in
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.22, ease: 'power2.out' }
+      );
+
+      // Card scale & slide up
+      const modalBox = containerRef.current?.querySelector('.modal-content-box');
+      if (modalBox) {
         gsap.fromTo(
-          backdropRef.current,
-          { opacity: 0 },
-          { opacity: 1, duration: 0.22, ease: 'power2.out' }
-        );
-      }
-
-      if (panelRef.current) {
-        const fromVars: gsap.TweenVars =
-          direction === 'up'
-            ? { y: 36, opacity: 0, scale: 0.98 }
-            : direction === 'right'
-            ? { x: 48, opacity: 0 }
-            : { scale: 0.92, opacity: 0, y: 12 };
-
-        gsap.fromTo(panelRef.current, fromVars, {
-          x: 0,
-          y: 0,
-          scale: 1,
-          opacity: 1,
-          duration: 0.32,
-          ease: direction === 'scale' ? 'back.out(1.35)' : 'power3.out',
-        });
-      }
-    });
-
-    return () => ctx.revert();
-  }, [backdropRef, panelRef, direction]);
-}
-
-/**
- * Stagger-animates child elements matching `selector` inside `containerRef`
- * whenever `deps` change, and attaches smooth scroll reveal animations.
- */
-export function useGsapStagger(
-  containerRef: React.RefObject<HTMLElement | null>,
-  selector: string = '.gsap-stagger-item',
-  deps: React.DependencyList = []
-) {
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ctx = gsap.context(() => {
-      const items = containerRef.current?.querySelectorAll(selector);
-      if (items && items.length > 0) {
-        gsap.fromTo(
-          items,
-          { y: 16, opacity: 0, scale: 0.99 },
-          {
-            y: 0,
-            opacity: 1,
-            scale: 1,
-            duration: 0.3,
-            stagger: 0.032,
-            ease: 'power3.out',
-            clearProps: 'transform',
-          }
+          modalBox,
+          { opacity: 0, scale: 0.94, y: 16 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.28, ease: 'back.out(1.4)' }
         );
       }
     }, containerRef);
 
     return () => ctx.revert();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [isOpen]);
+
+  return containerRef;
 }
 
 /**
- * Smoothly tweens a numeric value using GSAP.
+ * Staggers items entrance on mount using GSAP.
  */
-export function useGsapNumber(targetValue: number, duration: number = 0.45): number {
-  const valRef = useRef({ value: targetValue });
-  const displayRef = useRef(targetValue);
+export function useGsapStagger(selector: string, deps: unknown[] = []) {
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    gsap.to(valRef.current, {
-      value: targetValue,
-      duration,
-      ease: 'power2.out',
-      onUpdate: () => {
-        displayRef.current = valRef.current.value;
-      },
-    });
-  }, [targetValue, duration]);
+    if (!containerRef.current) return;
+    const items = containerRef.current.querySelectorAll(selector);
+    if (!items || items.length === 0) return;
 
-  return displayRef.current;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        items,
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.3,
+          stagger: 0.04,
+          ease: 'power2.out',
+        }
+      );
+    }, containerRef);
+
+    return () => ctx.revert();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return containerRef;
 }
 
 /**
- * Tactile GSAP micro-interaction for button presses.
+ * Animate button micro-press with GSAP
  */
 export function animateButtonPress(element: HTMLElement | null) {
   if (!element) return;
-  gsap.fromTo(
-    element,
-    { scale: 0.95 },
-    { scale: 1, duration: 0.25, ease: 'back.out(2)' }
-  );
+  gsap.timeline()
+    .to(element, { scale: 0.94, duration: 0.07, ease: 'power2.in' })
+    .to(element, { scale: 1, duration: 0.15, ease: 'elastic.out(1.2, 0.4)' });
+}
+
+/**
+ * Smoothly tween a numerical value in a text element using GSAP
+ */
+export function tweenNumber(
+  element: HTMLElement | null,
+  from: number,
+  to: number,
+  prefix: string = '$',
+  decimals: number = 2
+) {
+  if (!element) return;
+  const obj = { val: from };
+  gsap.to(obj, {
+    val: to,
+    duration: 0.45,
+    ease: 'power2.out',
+    onUpdate: () => {
+      if (element) {
+        element.innerText = `${prefix}${obj.val.toLocaleString('en-US', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        })}`;
+      }
+    },
+  });
 }

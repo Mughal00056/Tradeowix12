@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import gsap from 'gsap';
+import React, { useState } from 'react';
 import { Asset, UserProfile, TradeOrder } from '../types/trading';
 import { AssetIcon } from './AssetIcon';
-import { ChevronDown, Briefcase, RefreshCw, Check, Info, Maximize2, Smartphone } from 'lucide-react';
+import { ChevronDown, Briefcase, RefreshCw, Check } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { animateButtonPress } from '../utils/gsapAnimations';
 
 interface HeaderProps {
   currentAsset: Asset;
@@ -17,8 +15,6 @@ interface HeaderProps {
   onOpenAccountModal?: () => void;
   onSwitchAccountType: (type: 'DEMO' | 'REAL') => void;
   onResetDemoBalance: () => void;
-  isFullWidth?: boolean;
-  onToggleFullWidth?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -32,61 +28,10 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAccountModal,
   onSwitchAccountType,
   onResetDemoBalance,
-  isFullWidth = false,
-  onToggleFullWidth,
 }) => {
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+
   const activeBalance = user.accountType === 'DEMO' ? user.demoBalance : user.realBalance;
-  const [displayBalance, setDisplayBalance] = useState(activeBalance);
-
-  const headerRef = useRef<HTMLElement>(null);
-  const assetBtnRef = useRef<HTMLButtonElement>(null);
-  const balanceBtnRef = useRef<HTMLButtonElement>(null);
-  const balanceValRef = useRef({ val: activeBalance });
-
-  // GSAP entrance animation
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      if (headerRef.current) {
-        gsap.fromTo(
-          headerRef.current,
-          { y: -20, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' }
-        );
-      }
-    });
-    return () => ctx.revert();
-  }, []);
-
-  // GSAP smooth balance counter tween
-  useEffect(() => {
-    gsap.to(balanceValRef.current, {
-      val: activeBalance,
-      duration: 0.45,
-      ease: 'power2.out',
-      onUpdate: () => {
-        setDisplayBalance(balanceValRef.current.val);
-      },
-    });
-    if (balanceBtnRef.current) {
-      gsap.fromTo(
-        balanceBtnRef.current,
-        { scale: 1.04 },
-        { scale: 1, duration: 0.3, ease: 'back.out(2)' }
-      );
-    }
-  }, [activeBalance]);
-
-  // Animate asset switch
-  useEffect(() => {
-    if (assetBtnRef.current) {
-      gsap.fromTo(
-        assetBtnRef.current,
-        { y: -3, opacity: 0.85 },
-        { y: 0, opacity: 1, duration: 0.25, ease: 'power2.out' }
-      );
-    }
-  }, [currentAsset.id]);
 
   // Active trade on current asset
   const activeTrade = openTrades.find((t) => t.assetId === currentAsset.id);
@@ -102,17 +47,12 @@ export const Header: React.FC<HeaderProps> = ({
     : null;
 
   return (
-    <header
-      ref={headerRef}
-      className="h-14 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 px-3 sm:px-5 flex items-center justify-between select-none relative z-30 shrink-0"
-    >
+    <header className="h-14 bg-white/90 backdrop-blur-xl border-b border-slate-200/80 px-3 sm:px-6 flex items-center justify-between select-none relative z-30">
       {/* LEFT: Asset Selector Button & Info "i" Button */}
       <div className="flex items-center gap-1.5">
         <button
-          ref={assetBtnRef}
-          onClick={(e) => {
+          onClick={() => {
             playClickSound();
-            animateButtonPress(e.currentTarget);
             onOpenAssetSelector();
           }}
           className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white/80 hover:bg-slate-50/90 active:scale-98 transition-all shadow-xs cursor-pointer"
@@ -120,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
           <AssetIcon flags={currentAsset.flags} size="sm" />
           <div className="flex flex-col text-left">
             <div className="flex items-center gap-1">
-              <span className="font-bold text-xs text-slate-800 tracking-tight whitespace-nowrap">
+              <span className="font-bold text-xs text-slate-800 tracking-tight">
                 {currentAsset.symbol.replace(' (OTC)', '')}
               </span>
               <ChevronDown className="w-3 h-3 text-slate-400" />
@@ -131,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
                 {currentAsset.payoutPercent}%
               </span>
 
-              {/* Live trade P/L in header */}
+              {/* Live trade P/L in header (Screenshots 5 & 6) */}
               {currentTradePL && (
                 <span
                   className={`text-[10px] font-mono-numbers font-black ${
@@ -144,55 +84,15 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
         </button>
-
-        {onOpenAssetInfo && (
-          <button
-            onClick={(e) => {
-              playClickSound();
-              animateButtonPress(e.currentTarget);
-              onOpenAssetInfo();
-            }}
-            className="w-8 h-8 rounded-xl border border-slate-200/80 bg-white/80 hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-indigo-600 transition-colors shadow-2xs cursor-pointer"
-            title="Asset Information & Trading Conditions"
-          >
-            <Info className="w-3.5 h-3.5" />
-          </button>
-        )}
       </div>
 
-      {/* RIGHT CONTROLS: Viewport Toggle (Desktop), Balance Pill & User Avatar */}
+      {/* RIGHT CONTROLS: Balance Pill & User Avatar */}
       <div className="flex items-center gap-2">
-        {onToggleFullWidth && (
-          <button
-            onClick={(e) => {
-              playClickSound();
-              animateButtonPress(e.currentTarget);
-              onToggleFullWidth();
-            }}
-            className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 text-slate-600 text-[11px] font-semibold transition-colors cursor-pointer"
-            title={isFullWidth ? 'Switch to Mobile Device Frame' : 'Expand to Full-Screen Desktop Terminal'}
-          >
-            {isFullWidth ? (
-              <>
-                <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Mobile View</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Full Screen</span>
-              </>
-            )}
-          </button>
-        )}
-
         {/* Balance Pill Button (Opens Account Switcher Modal) */}
         <div className="relative">
           <button
-            ref={balanceBtnRef}
-            onClick={(e) => {
+            onClick={() => {
               playClickSound();
-              animateButtonPress(e.currentTarget);
               if (onOpenAccountModal) {
                 onOpenAccountModal();
               } else {
@@ -203,11 +103,11 @@ export const Header: React.FC<HeaderProps> = ({
             title="Trading Account & Balances"
           >
             <Briefcase className="w-3.5 h-3.5 text-amber-500" />
-            <span className="font-mono-numbers font-bold text-xs text-slate-800 whitespace-nowrap">
-              ${displayBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <span className="font-mono-numbers font-bold text-xs text-slate-800">
+              ${activeBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
             <span
-              className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap ${
+              className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
                 user.accountType === 'DEMO'
                   ? 'bg-amber-100 text-amber-800 border border-amber-300/60'
                   : 'bg-emerald-100 text-emerald-800 border border-emerald-300/60'
@@ -219,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Account Dropdown Switcher (Fallback if modal not used) */}
           {showAccountDropdown && (
-            <div className="absolute right-0 top-full mt-1.5 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/60 p-2.5 z-40">
+            <div className="absolute right-0 top-full mt-1.5 w-60 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/60 p-2.5 z-40 animate-in fade-in duration-100">
               <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
                 Select Account
               </div>
@@ -292,12 +192,11 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* User Profile Avatar Icon (Purple circle with bag and ! badge) */}
         <button
-          onClick={(e) => {
+          onClick={() => {
             playClickSound();
-            animateButtonPress(e.currentTarget);
             onOpenProfile();
           }}
-          className="relative w-9 h-9 rounded-full bg-[#5b21b6] text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-xs cursor-pointer shrink-0"
+          className="relative w-9 h-9 rounded-full bg-[#5b21b6] text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-xs cursor-pointer"
           title="Account Profile"
         >
           <svg

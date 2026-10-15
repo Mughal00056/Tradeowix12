@@ -1,7 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { X, Coins, Check, Sparkles, Copy } from 'lucide-react';
+import React from 'react';
+import { X, Coins, Gift, Check, Sparkles, Copy } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { useGsapModal } from '../utils/gsapAnimations';
 
 interface BonusModalProps {
   onClose: () => void;
@@ -12,29 +11,16 @@ export const BonusModal: React.FC<BonusModalProps> = ({
   onClose,
   onOpenDeposit,
 }) => {
-  const [copied, setCopied] = useState(false);
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const code = 'TRADOBONUS70';
 
-  useGsapModal(backdropRef, panelRef, 'scale');
-
   const handleCopy = () => {
-    playClickSound();
     navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    alert('Bonus promo code TRADOBONUS70 copied!');
   };
 
   return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs select-none"
-    >
-      <div
-        ref={panelRef}
-        className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden"
-      >
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100">
           <div className="flex items-center gap-2">
@@ -51,7 +37,7 @@ export const BonusModal: React.FC<BonusModalProps> = ({
               playClickSound();
               onClose();
             }}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -61,7 +47,7 @@ export const BonusModal: React.FC<BonusModalProps> = ({
           {/* Banner */}
           <div className="p-5 bg-gradient-to-br from-amber-500 via-amber-600 to-yellow-600 text-white rounded-2xl shadow-md text-center relative overflow-hidden">
             <div className="relative z-10">
-              <Sparkles className="w-8 h-8 mx-auto mb-2 text-yellow-200" />
+              <Sparkles className="w-8 h-8 mx-auto mb-2 text-yellow-200 animate-bounce" />
               <h3 className="text-xl font-black tracking-tight">Boost Your Balance +70%</h3>
               <p className="text-xs text-amber-100 mt-1 max-w-xs mx-auto">
                 Get up to $700 in extra trading funds on your first deposit with instant zero-commission payout.
@@ -79,10 +65,10 @@ export const BonusModal: React.FC<BonusModalProps> = ({
             </div>
             <button
               onClick={handleCopy}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg flex items-center gap-1 active:scale-95 transition-all"
             >
-              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Copied!' : 'Copy'}</span>
+              <Copy className="w-3.5 h-3.5" />
+              <span>Copy</span>
             </button>
           </div>
 

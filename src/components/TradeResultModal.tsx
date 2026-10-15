@@ -1,8 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TradeOrder } from '../types/trading';
-import { X, Sparkles } from 'lucide-react';
+import { CheckCircle2, XCircle, ArrowUpRight, ArrowDownRight, X, TrendingUp, Sparkles } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { useGsapModal } from '../utils/gsapAnimations';
 
 interface TradeResultModalProps {
   trade: TradeOrder;
@@ -16,11 +15,6 @@ export const TradeResultModal: React.FC<TradeResultModalProps> = ({
   const isWon = trade.status === 'WON';
   const isDraw = trade.status === 'DRAW';
   const [timeLeft, setTimeLeft] = useState(4); // 4 second auto-dismiss
-
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useGsapModal(backdropRef, panelRef, 'scale');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -42,14 +36,12 @@ export const TradeResultModal: React.FC<TradeResultModalProps> = ({
 
   return (
     <div
-      ref={backdropRef}
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150 select-none"
     >
       <div
-        ref={panelRef}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-xs bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/80 overflow-hidden text-center p-5 relative"
+        className="w-full max-w-xs bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/80 overflow-hidden text-center p-5 animate-in zoom-in-95 duration-200 relative"
         style={{
           boxShadow: isWon
             ? '0 20px 40px -15px rgba(16, 185, 129, 0.25), 0 0 0 1px rgba(16, 185, 129, 0.1)'

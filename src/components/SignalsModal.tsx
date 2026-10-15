@@ -1,8 +1,7 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { TradingSignal, Asset } from '../types/trading';
 import { X, Radio, ArrowUpRight, ArrowDownRight, Zap, ChevronLeft } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { useGsapModal, useGsapStagger } from '../utils/gsapAnimations';
 
 interface SignalsModalProps {
   signals: TradingSignal[];
@@ -13,26 +12,14 @@ interface SignalsModalProps {
 
 export const SignalsModal: React.FC<SignalsModalProps> = ({
   signals,
+  assets,
   onSelectSignal,
   onClose,
 }) => {
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useGsapModal(backdropRef, panelRef, 'up');
-  useGsapStagger(listRef, '.gsap-stagger-item', [signals.length]);
-
   return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl select-none overflow-hidden"
-    >
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-hidden">
       {/* Full Screen Glass Container */}
-      <div
-        ref={panelRef}
-        className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative"
-      >
+      <div className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative">
         {/* Glow orbs */}
         <div className="absolute top-10 right-10 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-emerald-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
@@ -52,7 +39,7 @@ export const SignalsModal: React.FC<SignalsModalProps> = ({
             </button>
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700 font-bold border border-purple-200/60">
-                <Radio className="w-4 h-4" />
+                <Radio className="w-4 h-4 animate-pulse" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -80,11 +67,8 @@ export const SignalsModal: React.FC<SignalsModalProps> = ({
         </div>
 
         {/* Signals feed */}
-        <div
-          ref={listRef}
-          className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 max-w-5xl mx-auto w-full custom-scrollbar"
-        >
-          <div className="gsap-stagger-item p-4 bg-indigo-50/80 backdrop-blur-md rounded-2xl border border-indigo-200/60 text-xs sm:text-sm text-indigo-950 flex items-center gap-3 shadow-xs">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-4 max-w-5xl mx-auto w-full custom-scrollbar">
+          <div className="p-4 bg-indigo-50/80 backdrop-blur-md rounded-2xl border border-indigo-200/60 text-xs sm:text-sm text-indigo-950 flex items-center gap-3 shadow-xs">
             <Zap className="w-5 h-5 text-indigo-600 shrink-0" />
             <span>High-frequency algorithmic signals updated every 30 seconds for OTC and Forex pairs with confidence scores.</span>
           </div>
@@ -92,10 +76,11 @@ export const SignalsModal: React.FC<SignalsModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {signals.map((sig) => {
               const isHigher = sig.direction === 'HIGHER';
+              const assetObj = assets.find((a) => a.id === sig.assetId);
               return (
                 <div
                   key={sig.id}
-                  className="gsap-stagger-item p-4 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/80 shadow-xs hover:shadow-md transition-all flex items-center justify-between"
+                  className="p-4 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/80 shadow-xs hover:shadow-md transition-all flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3.5">
                     <div
@@ -112,7 +97,7 @@ export const SignalsModal: React.FC<SignalsModalProps> = ({
                         {sig.assetSymbol}
                       </div>
                       <div className="text-xs text-slate-400 font-mono-numbers mt-0.5">
-                        Duration: {sig.timeframe} · Probability: <span className="font-bold text-slate-700">{sig.confidence}%</span>
+                        Duration: {sig.timeframe} • Probability: <span className="font-bold text-slate-700">{sig.confidence}%</span>
                       </div>
                     </div>
                   </div>
@@ -121,9 +106,8 @@ export const SignalsModal: React.FC<SignalsModalProps> = ({
                     onClick={() => {
                       playClickSound();
                       onSelectSignal(sig.assetId, sig.direction);
-                      onClose();
                     }}
-                    className={`px-4 py-2.5 rounded-xl font-black text-xs text-white shadow-md active:scale-95 transition-all cursor-pointer whitespace-nowrap ${
+                    className={`px-4 py-2.5 rounded-xl font-black text-xs text-white shadow-md active:scale-95 transition-all cursor-pointer ${
                       isHigher
                         ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20'
                         : 'bg-red-500 hover:bg-red-600 shadow-red-500/20'

@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-import gsap from 'gsap';
 
 interface LoadingScreenProps {
   onComplete: () => void;
@@ -7,122 +6,57 @@ interface LoadingScreenProps {
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
+  const [isFading, setIsFading] = useState(false);
   const completedRef = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const topArrowRef = useRef<SVGPathElement>(null);
-  const bottomArrowRef = useRef<SVGPathElement>(null);
-  const logoWrapRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLDivElement>(null);
-  const barRef = useRef<HTMLDivElement>(null);
 
   const finishLoading = () => {
     if (completedRef.current) return;
     completedRef.current = true;
-
-    if (containerRef.current) {
-      gsap.to(containerRef.current, {
-        opacity: 0,
-        scale: 1.03,
-        duration: 0.28,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          onComplete();
-        },
-      });
-    } else {
+    setIsFading(true);
+    setTimeout(() => {
       onComplete();
-    }
+    }, 250);
   };
 
   useEffect(() => {
-    const progressObj = { val: 0 };
+    // Smooth progress counter from 0 to 100% over 1000ms
+    const startTime = Date.now();
+    const duration = 1000;
 
-    const ctx = gsap.context(() => {
-      // Initial states
-      if (topArrowRef.current && bottomArrowRef.current) {
-        gsap.set([topArrowRef.current, bottomArrowRef.current], {
-          strokeDasharray: 260,
-          strokeDashoffset: 260,
-        });
-      }
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const currentProgress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setProgress(currentProgress);
 
-      if (logoWrapRef.current) {
-        gsap.fromTo(
-          logoWrapRef.current,
-          { scale: 0.85, opacity: 0 },
-          { scale: 1, opacity: 1, duration: 0.45, ease: 'back.out(1.6)' }
-        );
-      }
-
-      if (titleRef.current) {
-        gsap.fromTo(
-          titleRef.current,
-          { y: 12, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.4, delay: 0.15, ease: 'power3.out' }
-        );
-      }
-
-      // Main GSAP timeline for SVG path drawing + progress counter
-      const tl = gsap.timeline({
-        onComplete: () => {
+      if (currentProgress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
           finishLoading();
-        },
-      });
-
-      tl.to(
-        [topArrowRef.current, bottomArrowRef.current],
-        {
-          strokeDashoffset: 0,
-          duration: 0.95,
-          ease: 'power2.inOut',
-        },
-        0
-      );
-
-      tl.to(
-        progressObj,
-        {
-          val: 100,
-          duration: 0.95,
-          ease: 'power2.inOut',
-          onUpdate: () => {
-            setProgress(Math.round(progressObj.val));
-          },
-        },
-        0
-      );
-
-      if (barRef.current) {
-        tl.fromTo(
-          barRef.current,
-          { width: '0%' },
-          { width: '100%', duration: 0.95, ease: 'power2.inOut' },
-          0
-        );
+        }, 150);
       }
-    }, containerRef);
+    }, 30);
 
     // Hard fallback safety timeout - guaranteed to never get stuck!
     const safetyTimer = setTimeout(() => {
       finishLoading();
-    }, 1250);
+    }, 1300);
 
     return () => {
-      ctx.revert();
+      clearInterval(interval);
       clearTimeout(safetyTimer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div
-      ref={containerRef}
       onClick={finishLoading}
       onTouchStart={finishLoading}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white cursor-pointer select-none"
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-white cursor-pointer select-none transition-opacity duration-300 ${
+        isFading ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      }`}
     >
-      {/* Container for GSAP Drawing Animation */}
-      <div ref={logoWrapRef} className="relative w-36 h-36 flex items-center justify-center">
+      {/* Container for Drawing Animation */}
+      <div className="relative w-36 h-36 flex items-center justify-center">
         {/* SVG Path Draw of TradoWix dual-arrow loop logo */}
         <svg
           viewBox="0 0 100 100"
@@ -146,36 +80,41 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
             strokeLinecap="round"
           />
 
-          {/* Active GSAP drawing stroke top arrow */}
+          {/* Active drawing stroke top arrow - strokes in as progress increases */}
           <path
-            ref={topArrowRef}
             d="M 38 46 L 56 46 C 68 46 76 52 76 62 C 76 72 68 80 56 80 L 46 80 L 58 66 L 36 66 L 36 78 C 36 82 40 85 46 85 L 58 85 C 72 85 82 75 82 62 C 82 48 71 40 56 40 L 38 40 Z"
             stroke="#0f172a"
             strokeWidth="2.6"
             strokeLinejoin="round"
             strokeLinecap="round"
+            style={{
+              strokeDasharray: 260,
+              strokeDashoffset: 260 - (260 * progress) / 100,
+              transition: 'stroke-dashoffset 60ms linear',
+            }}
           />
 
-          {/* Active GSAP drawing stroke bottom arrow */}
+          {/* Active drawing stroke bottom arrow */}
           <path
-            ref={bottomArrowRef}
             d="M 62 54 L 44 54 C 32 54 24 48 24 38 C 24 28 32 20 44 20 L 54 20 L 42 34 L 64 34 L 64 22 C 64 18 60 15 54 15 L 42 15 C 28 15 18 25 18 38 C 18 52 29 60 44 60 L 62 60 Z"
             stroke="#0f172a"
             strokeWidth="2.6"
             strokeLinejoin="round"
             strokeLinecap="round"
+            style={{
+              strokeDasharray: 260,
+              strokeDashoffset: 260 - (260 * progress) / 100,
+              transition: 'stroke-dashoffset 60ms linear',
+            }}
           />
         </svg>
 
-        {/* Subtle static ring */}
-        <div className="absolute inset-0 rounded-full border border-slate-200/60 pointer-events-none" />
+        {/* Ambient pulse dot */}
+        <div className="absolute inset-0 rounded-full border border-slate-200/50 animate-ping opacity-20 pointer-events-none" />
       </div>
 
       {/* Brand title */}
-      <div
-        ref={titleRef}
-        className="mt-4 flex items-center gap-1.5 font-extrabold text-lg tracking-tight text-slate-900 font-sans"
-      >
+      <div className="mt-4 flex items-center gap-1.5 font-extrabold text-lg tracking-tight text-slate-900 font-sans">
         <span>Trado</span>
         <span className="text-indigo-600">Wix</span>
       </div>
@@ -183,7 +122,10 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
       {/* Progress Bar & Percentage */}
       <div className="mt-4 w-44 flex flex-col items-center">
         <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-          <div ref={barRef} className="h-full bg-slate-900 rounded-full" style={{ width: `${progress}%` }} />
+          <div
+            className="h-full bg-slate-900 rounded-full transition-all duration-75"
+            style={{ width: `${progress}%` }}
+          />
         </div>
         <div className="mt-2 flex items-center justify-between w-full text-[11px] font-mono-numbers text-slate-400 font-semibold">
           <span>Loading market...</span>
@@ -192,7 +134,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
       </div>
 
       {/* Subtle skip indicator */}
-      <div className="mt-8 text-[11px] text-slate-400 hover:text-slate-600 font-medium transition-colors">
+      <div className="mt-8 text-[11px] text-slate-300 hover:text-slate-500 font-medium transition-colors">
         Tap anywhere to enter
       </div>
     </div>

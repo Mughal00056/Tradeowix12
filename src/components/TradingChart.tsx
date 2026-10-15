@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import gsap from 'gsap';
 import { Asset, Candle, TradeOrder } from '../types/trading';
-import { SlidersHorizontal, TrendingUp, BarChart2, Layers } from 'lucide-react';
+import { SlidersHorizontal, TrendingUp, BarChart2, Layers, Info, X } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
 
 interface TradingChartProps {
@@ -32,16 +31,22 @@ export const TradingChart: React.FC<TradingChartProps> = ({
   onOpenAssetInfo,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgGroupRef = useRef<SVGGElement>(null);
-  const toolsMenuRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 380, height: 420 });
   const [chartType, setChartType] = useState<'candles' | 'area'>('candles');
   const [showToolsMenu, setShowToolsMenu] = useState(false);
   const [showIndicators, setShowIndicators] = useState(true);
   const [sentimentBuy, setSentimentBuy] = useState(28);
-  const [liveClock, setLiveClock] = useState('12:30:43');
 
-  // Measure container dimensions using ResizeObserver + window resize
+  // Interactive tap crosshair state (dotted lines appear ONLY when user taps on graph)
+  const [tapCrosshair, setTapCrosshair] = useState<{
+    x: number;
+    y: number;
+    price: number;
+    time: number;
+  } | null>(null);
+
+  // Measure container dimensions
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
@@ -52,50 +57,9 @@ export const TradingChart: React.FC<TradingChartProps> = ({
       }
     };
     updateSize();
-    const ro = new ResizeObserver(updateSize);
-    if (containerRef.current) ro.observe(containerRef.current);
     window.addEventListener('resize', updateSize);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', updateSize);
-    };
+    return () => window.removeEventListener('resize', updateSize);
   }, []);
-
-  // Live clock update
-  useEffect(() => {
-    const updateClock = () => {
-      const d = new Date();
-      const hh = d.getHours().toString().padStart(2, '0');
-      const mm = d.getMinutes().toString().padStart(2, '0');
-      const ss = d.getSeconds().toString().padStart(2, '0');
-      setLiveClock(`${hh}:${mm}:${ss}`);
-    };
-    updateClock();
-    const t = setInterval(updateClock, 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  // GSAP chart transition when switching asset or chart type
-  useEffect(() => {
-    if (svgGroupRef.current) {
-      gsap.fromTo(
-        svgGroupRef.current,
-        { opacity: 0.3, y: 6 },
-        { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
-      );
-    }
-  }, [asset.id, chartType, timeframeSeconds]);
-
-  // GSAP tools menu animation
-  useEffect(() => {
-    if (showToolsMenu && toolsMenuRef.current) {
-      gsap.fromTo(
-        toolsMenuRef.current,
-        { y: 12, opacity: 0, scale: 0.95 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.24, ease: 'back.out(1.6)' }
-      );
-    }
-  }, [showToolsMenu]);
 
   // Fluctuating sentiment
   useEffect(() => {
@@ -204,14 +168,73 @@ export const TradingChart: React.FC<TradingChartProps> = ({
   const endOfTradeX = Math.min(chartWidth - 25, (visibleCandles.length - 1) * candleSpacing + 45);
   const startOfTradeX = Math.max(30, endOfTradeX - 90);
 
-  // Active trade for floating arrow badge
-  const latestOpenTrade = openTrades[openTrades.length - 1];
+  // Interactive chart tap handler: renders dotted line crosshair ONLY when graph is tapped!
+  const handleChartTap = (e: React.MouseEvent<SVGSVGElement> | React.TouchEvent<SVGSVGElement>) => {
+    const svgRect = svgRef.current?.getBoundingClientRect();
+    if (!svgRect) return;
+
+    let clientX = 0;
+    let clientY = 0;
+    if ('touches' in e) {
+      if (e.touches.length === 0) return;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const relX = Math.max(10, Math.min(chartWidth, clientX - svgRect.left));
+    const relY = Math.max(8, Math.min(chartHeight, clientY - svgRect.top));
+
+    // Toggle off if tapped near existing crosshair
+    if (tapCrosshair && Math.abs(tapCrosshair.x - relX) < 18 && Math.abs(tapCrosshair.y - relY) < 18) {
+      setTapCrosshair(null);
+      return;
+    }
+
+    const tappedPrice = minPrice + ((chartHeight - relY) / chartHeight) * priceRange;
+    const candleIndex = Math.round((relX - 20) / candleSpacing);
+    const clampedIndex = Math.max(0, Math.min(visibleCandles.length - 1, candleIndex));
+    const tappedTime = visibleCandles[clampedIndex]?.time || Date.now();
+
+    playClickSound();
+    setTapCrosshair({
+      x: relX,
+      y: relY,
+      price: tappedPrice,
+      time: tappedTime,
+    });
+  };
 
   return (
     <div
       ref={containerRef}
       className="relative w-full h-full bg-white select-none overflow-hidden flex flex-col"
     >
+      {/* Floating Crosshair Indicator Chip (Shown only when graph is tapped) */}
+      {tapCrosshair && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-35 flex items-center gap-2 bg-indigo-950/90 backdrop-blur-xl text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-xl border border-indigo-500/30 animate-in fade-in zoom-in-95 duration-150">
+          <span className="font-mono-numbers font-bold text-indigo-200">
+            ${tapCrosshair.price.toFixed(asset.decimals)}
+          </span>
+          <span className="text-indigo-400">|</span>
+          <span className="font-mono-numbers text-indigo-300">
+            {new Date(tapCrosshair.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setTapCrosshair(null);
+            }}
+            className="ml-1 w-4 h-4 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-[10px] cursor-pointer"
+            title="Dismiss crosshair"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* LEFT SENTIMENT GAUGE (Exact match to screenshots: 28% green / 72% red) */}
       <div className="absolute left-1.5 top-6 bottom-7 w-1 flex flex-col z-20 pointer-events-none">
         <span className="text-[10px] font-bold text-emerald-600 mb-1 -ml-0.5">
@@ -278,11 +301,11 @@ export const TradingChart: React.FC<TradingChartProps> = ({
         </div>
       )}
 
-      {/* TOP CHART INFO (Beginning of trade / End of trade) */}
+      {/* TOP CHART INFO (Beginning of trade / End of trade - clean without i button) */}
       <div className="absolute top-2 left-3 right-3 flex items-center justify-between text-[11px] text-slate-400 z-10 pointer-events-none">
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="font-mono-numbers text-slate-600 font-semibold">{liveClock}</span>
+          <span className="font-mono-numbers text-slate-600 font-semibold">12:30:43</span>
           <span className="text-[10px] text-slate-400">GMT+5 »</span>
           <span className="hidden sm:inline text-slate-400 text-[10px]">Beginning of trade</span>
         </div>
@@ -295,7 +318,13 @@ export const TradingChart: React.FC<TradingChartProps> = ({
       </div>
 
       {/* MAIN SVG CHART CANVAS */}
-      <svg className="w-full flex-1" style={{ height: chartHeight + 28 }}>
+      <svg
+        ref={svgRef}
+        onClick={handleChartTap}
+        onTouchStart={handleChartTap}
+        className="w-full flex-1 cursor-crosshair select-none"
+        style={{ height: chartHeight + 28 }}
+      >
         <defs>
           <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#26a69a" stopOpacity="0.25" />
@@ -309,7 +338,7 @@ export const TradingChart: React.FC<TradingChartProps> = ({
 
         <rect width={chartWidth} height={chartHeight} fill="url(#gridPattern)" />
 
-        {/* Horizontal grid lines */}
+        {/* Clean solid horizontal grid lines (no distracting permanent dots) */}
         {priceTicks.map((tick, idx) => (
           <line
             key={idx}
@@ -317,33 +346,10 @@ export const TradingChart: React.FC<TradingChartProps> = ({
             y1={tick.y}
             x2={chartWidth}
             y2={tick.y}
-            stroke="#f1f5f9"
-            strokeDasharray="2,2"
+            stroke="#f8fafc"
             strokeWidth="1"
           />
         ))}
-
-        {/* Vertical Beginning of Trade dotted line */}
-        <line
-          x1={startOfTradeX}
-          y1="8"
-          x2={startOfTradeX}
-          y2={chartHeight}
-          stroke="#cbd5e1"
-          strokeDasharray="3,3"
-          strokeWidth="1.2"
-        />
-
-        {/* Vertical End of Trade red dotted line (Screenshot 1 & 6) */}
-        <line
-          x1={endOfTradeX}
-          y1="8"
-          x2={endOfTradeX}
-          y2={chartHeight}
-          stroke="#ef5350"
-          strokeDasharray="3,3"
-          strokeWidth="1.5"
-        />
 
         {/* SMA Line */}
         {showIndicators && smaPoints && (
@@ -374,7 +380,7 @@ export const TradingChart: React.FC<TradingChartProps> = ({
         )}
 
         {chartType === 'candles' && (
-          <g ref={svgGroupRef}>
+          <g>
             {visibleCandles.map((c, i) => {
               const x = i * candleSpacing + 20;
               const isBull = c.close >= c.open;
@@ -832,15 +838,15 @@ export const TradingChart: React.FC<TradingChartProps> = ({
             );
           })}
 
-        {/* Horizontal Current Price Dotted Line (Screenshot 1 & 6) */}
+        {/* Subtle Current Price Solid Hairline (replaces old dotted line) */}
         <line
           x1="20"
           y1={currentY}
           x2={chartWidth + 6}
           y2={currentY}
           stroke="#26a69a"
-          strokeDasharray="3,3"
-          strokeWidth="1.8"
+          strokeWidth="1"
+          strokeOpacity="0.4"
         />
 
         {/* Current price pulse dot */}
@@ -851,6 +857,50 @@ export const TradingChart: React.FC<TradingChartProps> = ({
           fill="#26a69a"
           className="animate-pulse"
         />
+
+        {/* INTERACTIVE TAP CROSSHAIR DOTTED LINES: Shown ONLY when user taps/clicks on the graph! */}
+        {tapCrosshair && (
+          <g className="z-30 pointer-events-none">
+            {/* Horizontal Dotted Crosshair Line */}
+            <line
+              x1="0"
+              y1={tapCrosshair.y}
+              x2={chartWidth + 6}
+              y2={tapCrosshair.y}
+              stroke="#6366f1"
+              strokeDasharray="4,4"
+              strokeWidth="1.6"
+            />
+
+            {/* Vertical Dotted Crosshair Line */}
+            <line
+              x1={tapCrosshair.x}
+              y1="0"
+              x2={tapCrosshair.x}
+              y2={chartHeight}
+              stroke="#6366f1"
+              strokeDasharray="4,4"
+              strokeWidth="1.6"
+            />
+
+            {/* Tap Point Center Target Reticle */}
+            <circle
+              cx={tapCrosshair.x}
+              cy={tapCrosshair.y}
+              r="8"
+              fill="#6366f1"
+              fillOpacity="0.22"
+              stroke="#6366f1"
+              strokeWidth="2"
+            />
+            <circle
+              cx={tapCrosshair.x}
+              cy={tapCrosshair.y}
+              r="3.5"
+              fill="#6366f1"
+            />
+          </g>
+        )}
 
         {/* Bottom Time labels */}
         {visibleCandles.map((c, i) => {
@@ -874,6 +924,19 @@ export const TradingChart: React.FC<TradingChartProps> = ({
         })}
       </svg>
 
+      {/* TAP CROSSHAIR TIME PILL ON BOTTOM AXIS */}
+      {tapCrosshair && (
+        <div
+          className="absolute z-35 bg-[#6366f1] text-white px-2 py-0.5 rounded-md font-mono-numbers text-[10px] font-bold shadow-lg pointer-events-none -translate-x-1/2"
+          style={{
+            left: `${Math.max(30, Math.min(chartWidth - 30, tapCrosshair.x))}px`,
+            bottom: '4px',
+          }}
+        >
+          {new Date(tapCrosshair.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </div>
+      )}
+
       {/* RIGHT PRICE SCALE BAR */}
       <div
         className="absolute right-0 top-0 bottom-6 w-17 border-l border-slate-100 flex flex-col justify-between py-2 pointer-events-none"
@@ -891,6 +954,18 @@ export const TradingChart: React.FC<TradingChartProps> = ({
             {tick.price.toFixed(asset.decimals)}
           </div>
         ))}
+
+        {/* TAP CROSSHAIR PRICE PILL ON RIGHT SCALE */}
+        {tapCrosshair && (
+          <div
+            className="absolute right-0 z-40 bg-[#6366f1] text-white px-2 py-0.5 rounded-l-md font-mono-numbers text-[11px] font-bold shadow-lg animate-in fade-in duration-100"
+            style={{
+              top: `${Math.max(4, Math.min(chartHeight - 22, tapCrosshair.y - 10))}px`,
+            }}
+          >
+            {tapCrosshair.price.toFixed(asset.decimals)}
+          </div>
+        )}
 
         {/* CURRENT PRICE BADGE WITH COUNTDOWN (Screenshots 1, 6: teal or red box) */}
         <div
@@ -910,26 +985,45 @@ export const TradingChart: React.FC<TradingChartProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM-LEFT CHART TOOL BUTTON */}
-      <div className="absolute left-6 bottom-3.5 z-20">
+      {/* BOTTOM-LEFT: (i) Info Button placed to the left of 20s / Tools */}
+      <div className="absolute left-3.5 bottom-3.5 z-20 flex items-center gap-1.5">
+        {/* Info (i) Button: Placed on the left of 20s as requested! */}
         <button
-          onClick={() => setShowToolsMenu(!showToolsMenu)}
-          className={`w-9 h-9 rounded-xl border flex items-center justify-center shadow-sm transition-all active:scale-95 ${
+          onClick={(e) => {
+            e.stopPropagation();
+            playClickSound();
+            onOpenAssetInfo?.();
+          }}
+          className="h-8.5 px-2.5 rounded-xl border border-slate-200/90 bg-white/95 backdrop-blur-md hover:bg-slate-50 text-slate-700 hover:text-indigo-600 flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer font-bold text-xs"
+          title="Asset Info & Specifications"
+        >
+          <Info className="w-3.5 h-3.5 text-indigo-600" />
+          <span className="text-[11px] font-bold text-slate-800">Info</span>
+        </button>
+
+        {/* Timeframe pill showing 20s (or current timeframe) with settings icon */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            playClickSound();
+            setShowToolsMenu(!showToolsMenu);
+          }}
+          className={`h-8.5 px-2.5 rounded-xl border flex items-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer ${
             showToolsMenu
               ? 'bg-indigo-600 border-indigo-700 text-white'
               : 'bg-white/95 border-slate-200/90 text-slate-700 hover:bg-slate-50'
           }`}
-          title="Chart Settings"
+          title="Timeframe & Chart Settings"
         >
-          <SlidersHorizontal className="w-4 h-4" />
+          <span className="font-mono-numbers font-extrabold text-xs">
+            {timeframeSeconds < 60 ? `${timeframeSeconds}s` : '1m'}
+          </span>
+          <SlidersHorizontal className={`w-3.5 h-3.5 ${showToolsMenu ? 'text-white' : 'text-slate-400'}`} />
         </button>
 
         {/* Tools Menu Drawer with Glassmorphism */}
         {showToolsMenu && (
-          <div
-            ref={toolsMenuRef}
-            className="absolute bottom-11 left-0 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/60 p-3 z-30"
-          >
+          <div className="absolute bottom-11 left-0 w-64 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/60 p-3 z-30 animate-in fade-in slide-in-from-bottom-2 duration-150">
             <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
               <span className="text-xs font-bold text-slate-800">Chart Settings</span>
               <button
@@ -970,11 +1064,14 @@ export const TradingChart: React.FC<TradingChartProps> = ({
 
             <div className="mb-3">
               <span className="text-[11px] text-slate-400 font-medium block mb-1.5">Timeframe</span>
-              <div className="grid grid-cols-5 gap-1 text-center font-mono-numbers">
-                {[5, 10, 15, 30, 60].map((sec) => (
+              <div className="grid grid-cols-6 gap-1 text-center font-mono-numbers">
+                {[5, 10, 15, 20, 30, 60].map((sec) => (
                   <button
                     key={sec}
-                    onClick={() => setTimeframeSeconds(sec)}
+                    onClick={() => {
+                      setTimeframeSeconds(sec);
+                      setShowToolsMenu(false);
+                    }}
                     className={`py-1 rounded-lg text-xs font-semibold transition-all ${
                       timeframeSeconds === sec
                         ? 'bg-indigo-600 text-white'

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   X,
   Send,
@@ -19,7 +19,6 @@ import {
   ChevronLeft,
 } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { useGsapModal, useGsapStagger } from '../utils/gsapAnimations';
 
 interface MoreMenuModalProps {
   onClose: () => void;
@@ -30,13 +29,6 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
   onClose,
   onNavigate,
 }) => {
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useGsapModal(backdropRef, panelRef, 'up');
-  useGsapStagger(listRef, '.gsap-stagger-item', []);
-
   const menuItems = [
     {
       id: 'bonus',
@@ -72,7 +64,7 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
     },
     {
       id: 'signals',
-      label: 'Algorithmic Trading Signals',
+      label: 'AI Trading Signals',
       badge: 'PRO',
       badgeColor: 'bg-indigo-100 text-indigo-700 border border-indigo-200',
       icon: Radio,
@@ -131,15 +123,9 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
   ];
 
   return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl select-none overflow-hidden"
-    >
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-hidden">
       {/* Full Screen Glass Container */}
-      <div
-        ref={panelRef}
-        className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative"
-      >
+      <div className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative">
         {/* Glow orbs */}
         <div className="absolute top-10 right-10 w-96 h-96 bg-indigo-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-amber-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
@@ -182,10 +168,7 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
         </div>
 
         {/* Scrollable Menu Items */}
-        <div
-          ref={listRef}
-          className="flex-1 overflow-y-auto p-4 sm:p-8 max-w-5xl mx-auto w-full custom-scrollbar"
-        >
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 max-w-5xl mx-auto w-full custom-scrollbar">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {menuItems.map((item) => {
               const IconComponent = item.icon;
@@ -194,9 +177,13 @@ export const MoreMenuModal: React.FC<MoreMenuModalProps> = ({
                   key={item.id}
                   onClick={() => {
                     playClickSound();
-                    onNavigate(item.id);
+                    if (item.id === 'telegram') {
+                      window.open('https://t.me/tradowix', '_blank');
+                    } else {
+                      onNavigate(item.id);
+                    }
                   }}
-                  className="gsap-stagger-item w-full flex items-center justify-between p-4 rounded-2xl bg-white/70 hover:bg-white/95 backdrop-blur-xl border border-white/80 hover:border-slate-200/80 shadow-2xs hover:shadow-md transition-all active:scale-[0.99] cursor-pointer text-left group"
+                  className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/70 hover:bg-white/95 backdrop-blur-xl border border-white/80 hover:border-slate-200/80 shadow-2xs hover:shadow-md transition-all active:scale-[0.99] cursor-pointer text-left group"
                 >
                   <div className="flex items-center gap-3.5">
                     <div

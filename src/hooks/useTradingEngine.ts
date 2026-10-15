@@ -10,7 +10,7 @@ const STORAGE_KEY_TRADES = 'tradowix_trades_v1';
 export function useTradingEngine() {
   const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
   const [currentAssetId, setCurrentAssetId] = useState<string>('eurusd-otc');
-  const [timeframeSeconds, setTimeframeSeconds] = useState<number>(5);
+  const [timeframeSeconds, setTimeframeSeconds] = useState<number>(20);
   const [durationSeconds, setDurationSeconds] = useState<number>(60);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(49); // matches screenshot 1: 00:49
 

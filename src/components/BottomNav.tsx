@@ -1,12 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import gsap from 'gsap';
-import { BarChart2, Radio, Wallet, Menu } from 'lucide-react';
+import { BarChart2, History, Wallet, Menu } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { animateButtonPress } from '../utils/gsapAnimations';
+
+export type BottomNavTab = 'trade' | 'history' | 'deposit' | 'more';
 
 interface BottomNavProps {
-  activeTab: 'trade' | 'trades' | 'signals' | 'deposit' | 'more';
-  onSelectTab: (tab: 'trade' | 'trades' | 'signals' | 'deposit' | 'more') => void;
+  activeTab: BottomNavTab;
+  onSelectTab: (tab: BottomNavTab) => void;
   openTradesCount: number;
 }
 
@@ -15,42 +16,25 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   onSelectTab,
   openTradesCount,
 }) => {
-  const navRef = useRef<HTMLElement>(null);
   const badgeRef = useRef<HTMLSpanElement>(null);
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      if (navRef.current) {
-        gsap.fromTo(
-          navRef.current,
-          { y: 20, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.4, ease: 'power3.out' }
-        );
-      }
-    });
-    return () => ctx.revert();
-  }, []);
-
+  // Bounce badge on trade count change using GSAP
   useEffect(() => {
     if (openTradesCount > 0 && badgeRef.current) {
       gsap.fromTo(
         badgeRef.current,
-        { scale: 1.4 },
-        { scale: 1, duration: 0.35, ease: 'elastic.out(1.2, 0.4)' }
+        { scale: 0.5, opacity: 0 },
+        { scale: 1, opacity: 1, duration: 0.35, ease: 'back.out(2)' }
       );
     }
   }, [openTradesCount]);
 
   return (
-    <nav
-      ref={navRef}
-      className="h-14 bg-white/95 backdrop-blur-md border-t border-slate-200/80 flex items-center justify-around px-2 select-none shrink-0 z-30"
-    >
+    <nav className="h-14 bg-white/95 backdrop-blur-md border-t border-slate-200/80 flex items-center justify-around px-2 select-none shrink-0 z-30">
       {/* 1. Trade (Active) */}
       <button
-        onClick={(e) => {
+        onClick={() => {
           playClickSound();
-          animateButtonPress(e.currentTarget);
           onSelectTab('trade');
         }}
         className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors cursor-pointer ${
@@ -61,27 +45,24 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="absolute top-0 inset-x-5 h-1 bg-[#6366f1] rounded-b-full shadow-xs" />
         )}
         <BarChart2 className="w-5 h-5 mb-0.5" />
-        <span className="text-[10px] tracking-tight whitespace-nowrap">Trade</span>
+        <span className="text-[10px] tracking-tight">Trade</span>
       </button>
 
-      {/* 2. Portfolio / Orders with purple badge */}
+      {/* 2. Trade History (replaces trading signals / portfolio with dedicated trade history) */}
       <button
-        onClick={(e) => {
+        onClick={() => {
           playClickSound();
-          animateButtonPress(e.currentTarget);
-          onSelectTab('trades');
+          onSelectTab('history');
         }}
         className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors cursor-pointer ${
-          activeTab === 'trades' ? 'text-[#6366f1] font-bold' : 'text-slate-400 hover:text-slate-600'
+          activeTab === 'history' ? 'text-[#6366f1] font-bold' : 'text-slate-400 hover:text-slate-600'
         }`}
       >
-        {activeTab === 'trades' && (
+        {activeTab === 'history' && (
           <span className="absolute top-0 inset-x-5 h-1 bg-[#6366f1] rounded-b-full shadow-xs" />
         )}
         <div className="relative">
-          <svg className="w-5 h-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
+          <History className="w-5 h-5 mb-0.5" />
           {openTradesCount > 0 && (
             <span
               ref={badgeRef}
@@ -91,35 +72,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             </span>
           )}
         </div>
-        <span className="text-[10px] tracking-tight whitespace-nowrap">Portfolio</span>
+        <span className="text-[10px] tracking-tight">Trade History</span>
       </button>
 
-      {/* 3. Signals */}
+      {/* 3. Top Up / Deposit */}
       <button
-        onClick={(e) => {
+        onClick={() => {
           playClickSound();
-          animateButtonPress(e.currentTarget);
-          onSelectTab('signals');
-        }}
-        className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors cursor-pointer ${
-          activeTab === 'signals' ? 'text-[#6366f1] font-bold' : 'text-slate-400 hover:text-slate-600'
-        }`}
-      >
-        {activeTab === 'signals' && (
-          <span className="absolute top-0 inset-x-5 h-1 bg-[#6366f1] rounded-b-full shadow-xs" />
-        )}
-        <div className="relative">
-          <Radio className="w-5 h-5 mb-0.5" />
-          <span className="absolute top-0 right-0 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-        </div>
-        <span className="text-[10px] tracking-tight whitespace-nowrap">Signals</span>
-      </button>
-
-      {/* 4. Top Up / Deposit */}
-      <button
-        onClick={(e) => {
-          playClickSound();
-          animateButtonPress(e.currentTarget);
           onSelectTab('deposit');
         }}
         className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors cursor-pointer ${
@@ -130,14 +89,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="absolute top-0 inset-x-5 h-1 bg-[#6366f1] rounded-b-full shadow-xs" />
         )}
         <Wallet className="w-5 h-5 mb-0.5" />
-        <span className="text-[10px] tracking-tight whitespace-nowrap">Top Up</span>
+        <span className="text-[10px] tracking-tight">Top Up</span>
       </button>
 
-      {/* 5. More */}
+      {/* 4. More */}
       <button
-        onClick={(e) => {
+        onClick={() => {
           playClickSound();
-          animateButtonPress(e.currentTarget);
           onSelectTab('more');
         }}
         className={`flex flex-col items-center justify-center flex-1 h-full relative transition-colors cursor-pointer ${
@@ -148,7 +106,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           <span className="absolute top-0 inset-x-5 h-1 bg-[#6366f1] rounded-b-full shadow-xs" />
         )}
         <Menu className="w-5 h-5 mb-0.5" />
-        <span className="text-[10px] tracking-tight whitespace-nowrap">More</span>
+        <span className="text-[10px] tracking-tight">More</span>
       </button>
     </nav>
   );

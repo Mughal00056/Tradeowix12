@@ -1,7 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { X, ShieldAlert, CheckCircle2, UploadCloud } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ShieldAlert, ShieldCheck, CheckCircle2, UploadCloud } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { useGsapModal } from '../utils/gsapAnimations';
 
 interface KycModalProps {
   isVerified: boolean;
@@ -16,34 +15,22 @@ export const KycModal: React.FC<KycModalProps> = ({
 }) => {
   const [docType, setDocType] = useState('id_card');
   const [submitted, setSubmitted] = useState(false);
-  const [fileSelected, setFileSelected] = useState(false);
-
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useGsapModal(backdropRef, panelRef, 'up');
 
   const handleSubmit = () => {
-    playClickSound();
     setSubmitted(true);
     setTimeout(() => {
       onVerify();
-      setSubmitted(false);
-    }, 1200);
+      alert('Verification documents approved! Your account is now verified.');
+      onClose();
+    }, 1500);
   };
 
   return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl select-none overflow-hidden"
-    >
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-hidden">
       {/* Full Screen Glass Container */}
-      <div
-        ref={panelRef}
-        className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative"
-      >
+      <div className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-8 py-3.5 border-b border-slate-100">
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700">
               <ShieldAlert className="w-4 h-4" />
@@ -55,13 +42,13 @@ export const KycModal: React.FC<KycModalProps> = ({
               playClickSound();
               onClose();
             }}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-4 sm:p-8 max-w-2xl mx-auto w-full space-y-4 overflow-y-auto">
+        <div className="p-4 space-y-4 overflow-y-auto">
           {isVerified ? (
             <div className="py-8 text-center">
               <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -71,12 +58,6 @@ export const KycModal: React.FC<KycModalProps> = ({
               <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
                 Your TradoWix profile is fully verified with unrestricted trading, deposits, and withdrawal privileges.
               </p>
-              <button
-                onClick={onClose}
-                className="mt-5 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl cursor-pointer"
-              >
-                Return to Terminal
-              </button>
             </div>
           ) : (
             <>
@@ -94,11 +75,8 @@ export const KycModal: React.FC<KycModalProps> = ({
                   ].map((d) => (
                     <button
                       key={d.id}
-                      onClick={() => {
-                        playClickSound();
-                        setDocType(d.id);
-                      }}
-                      className={`py-2 px-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      onClick={() => setDocType(d.id)}
+                      className={`py-2 px-2 rounded-xl text-xs font-semibold border transition-all ${
                         docType === d.id
                           ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
                           : 'border-slate-200 text-slate-600'
@@ -111,21 +89,9 @@ export const KycModal: React.FC<KycModalProps> = ({
               </div>
 
               {/* Upload Dropzone */}
-              <div
-                onClick={() => {
-                  playClickSound();
-                  setFileSelected(true);
-                }}
-                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors ${
-                  fileSelected
-                    ? 'border-emerald-400 bg-emerald-50/40'
-                    : 'border-slate-200 hover:border-indigo-400 bg-slate-50/50'
-                }`}
-              >
-                <UploadCloud className={`w-8 h-8 mx-auto mb-2 ${fileSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
-                <span className="text-xs font-bold text-slate-700 block">
-                  {fileSelected ? 'Document front_and_back_id.jpg ready for verification' : 'Click to attach document front & back'}
-                </span>
+              <div className="border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-2xl p-6 text-center cursor-pointer transition-colors bg-slate-50/50">
+                <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                <span className="text-xs font-bold text-slate-700 block">Click to upload document front & back</span>
                 <span className="text-[10px] text-slate-400 mt-0.5 block">JPG, PNG or PDF (Max 10MB)</span>
               </div>
 

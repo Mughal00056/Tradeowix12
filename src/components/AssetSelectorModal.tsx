@@ -1,9 +1,8 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Asset } from '../types/trading';
 import { AssetIcon } from './AssetIcon';
 import { Search, X, Star, ChevronUp, ChevronDown, Clock, Heart, ChevronLeft } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { useGsapModal, useGsapStagger } from '../utils/gsapAnimations';
 
 interface AssetSelectorModalProps {
   assets: Asset[];
@@ -24,10 +23,6 @@ export const AssetSelectorModal: React.FC<AssetSelectorModalProps> = ({
   const [activeTab, setActiveTab] = useState<'favorites' | 'fixed_time'>('fixed_time');
   const [isCurrencyPairsOpen, setIsCurrencyPairsOpen] = useState(true);
 
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
   const filteredAssets = useMemo(() => {
     return assets.filter((asset) => {
       const matchesSearch =
@@ -42,19 +37,10 @@ export const AssetSelectorModal: React.FC<AssetSelectorModalProps> = ({
     });
   }, [assets, search, activeTab]);
 
-  useGsapModal(backdropRef, panelRef, 'up');
-  useGsapStagger(listRef, '.gsap-stagger-item', [activeTab, isCurrencyPairsOpen]);
-
   return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl select-none overflow-hidden"
-    >
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-hidden">
       {/* Full Screen Glass Container */}
-      <div
-        ref={panelRef}
-        className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative"
-      >
+      <div className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative">
         {/* Ambient glow orbs */}
         <div className="absolute top-10 right-10 w-96 h-96 bg-indigo-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
         <div className="absolute bottom-10 left-10 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl pointer-events-none -z-10" />
@@ -146,10 +132,7 @@ export const AssetSelectorModal: React.FC<AssetSelectorModalProps> = ({
         {/* Currency Pairs Collapsible Header */}
         <div className="max-w-5xl mx-auto w-full px-4 sm:px-8 py-2.5 flex items-center justify-between text-xs font-bold text-slate-500 shrink-0">
           <button
-            onClick={() => {
-              playClickSound();
-              setIsCurrencyPairsOpen(!isCurrencyPairsOpen);
-            }}
+            onClick={() => setIsCurrencyPairsOpen(!isCurrencyPairsOpen)}
             className="flex items-center gap-2 text-indigo-600 font-extrabold cursor-pointer"
           >
             <span className="w-5 h-5 rounded-md bg-indigo-100 flex items-center justify-center text-[11px]">
@@ -173,15 +156,8 @@ export const AssetSelectorModal: React.FC<AssetSelectorModalProps> = ({
         </div>
 
         {/* Full Screen Scrollable Asset List */}
-        <div
-          ref={listRef}
-          className="flex-1 overflow-y-auto px-4 sm:px-8 pb-8 space-y-2 max-w-5xl mx-auto w-full custom-scrollbar"
-        >
-          {!isCurrencyPairsOpen ? (
-            <div className="py-12 text-center text-slate-400 text-xs">
-              Currency pairs group collapsed. Click above to expand ({filteredAssets.length} instruments).
-            </div>
-          ) : filteredAssets.length === 0 ? (
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-8 space-y-2 max-w-5xl mx-auto w-full custom-scrollbar">
+          {filteredAssets.length === 0 ? (
             <div className="py-20 text-center text-slate-400 text-sm">
               No assets found matching your search.
             </div>
@@ -197,7 +173,7 @@ export const AssetSelectorModal: React.FC<AssetSelectorModalProps> = ({
                     playClickSound();
                     onSelectAsset(asset);
                   }}
-                  className={`gsap-stagger-item flex items-center justify-between p-3.5 sm:p-4 rounded-2xl cursor-pointer transition-all border ${
+                  className={`flex items-center justify-between p-3.5 sm:p-4 rounded-2xl cursor-pointer transition-all border ${
                     isSelected
                       ? 'bg-indigo-50/80 border-indigo-200/80 shadow-xs'
                       : 'bg-white/60 hover:bg-white/95 border-slate-200/60 shadow-2xs'

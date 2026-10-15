@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import gsap from 'gsap';
+import React, { useState, useEffect } from 'react';
 import { useTradingEngine } from './hooks/useTradingEngine';
 import { LoadingScreen } from './components/LoadingScreen';
 import { Header } from './components/Header';
 import { TradingChart } from './components/TradingChart';
 import { TradeDock } from './components/TradeDock';
-import { BottomNav } from './components/BottomNav';
+import { BottomNav, BottomNavTab } from './components/BottomNav';
 import { AssetSelectorModal } from './components/AssetSelectorModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { MoreMenuModal } from './components/MoreMenuModal';
@@ -25,13 +24,11 @@ import { BonusModal } from './components/BonusModal';
 import { TradeResultModal } from './components/TradeResultModal';
 import { AssetInfoModal } from './components/AssetInfoModal';
 import { AccountModal } from './components/AccountModal';
-import { PlatformFeatureModal, FeatureViewType } from './components/PlatformFeatureModal';
 import { TradeDirection, TradeOrder } from './types/trading';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'trade' | 'trades' | 'signals' | 'deposit' | 'more'>('trade');
-  const [isFullWidth, setIsFullWidth] = useState(false);
+  const [activeTab, setActiveTab] = useState<BottomNavTab>('trade');
 
   // Modals state
   const [showAssetSelector, setShowAssetSelector] = useState(false);
@@ -47,10 +44,9 @@ export default function App() {
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [showKyc, setShowKyc] = useState(false);
   const [showBonus, setShowBonus] = useState(false);
-  const [featureView, setFeatureView] = useState<FeatureViewType | null>(null);
   const [inspectedTrade, setInspectedTrade] = useState<TradeOrder | null>(null);
 
-  const shellRef = useRef<HTMLDivElement>(null);
+
 
   const {
     assets,
@@ -87,35 +83,20 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // GSAP smooth layout transition when toggling Mobile Frame vs Full Screen
-  useEffect(() => {
-    if (shellRef.current) {
-      gsap.fromTo(
-        shellRef.current,
-        { opacity: 0.92, scale: 0.99 },
-        { opacity: 1, scale: 1, duration: 0.28, ease: 'power2.out' }
-      );
-    }
-  }, [isFullWidth]);
-
   // Handle trade button click from dock: Instant 1-click execution!
   const handleInitiateTrade = (direction: TradeDirection, amount: number, durationSec: number) => {
     placeTrade(direction, amount, durationSec);
   };
 
   // Handle bottom navigation tabs
-  const handleSelectBottomTab = (tab: 'trade' | 'trades' | 'signals' | 'deposit' | 'more') => {
+  const handleSelectBottomTab = (tab: BottomNavTab) => {
     setActiveTab(tab);
     if (tab === 'trade') {
       setShowTradesDrawer(false);
-      setShowSignals(false);
       setShowDeposit(false);
       setShowMoreMenu(false);
-      setFeatureView(null);
-    } else if (tab === 'trades') {
+    } else if (tab === 'history') {
       setShowTradesDrawer(true);
-    } else if (tab === 'signals') {
-      setShowSignals(true);
     } else if (tab === 'deposit') {
       setShowDeposit(true);
     } else if (tab === 'more') {
@@ -127,17 +108,14 @@ export default function App() {
   const handleNavigateFromMenu = (view: string) => {
     setShowMoreMenu(false);
     setShowProfile(false);
-    setActiveTab('trade');
     switch (view) {
       case 'deposit':
-      case 'finance':
         setShowDeposit(true);
         break;
       case 'withdraw':
         setShowWithdraw(true);
         break;
       case 'trades':
-      case 'transactions':
         setShowTradesDrawer(true);
         break;
       case 'signals':
@@ -154,22 +132,13 @@ export default function App() {
         setShowBonus(true);
         break;
       case 'kyc':
-      case 'verification':
         setShowKyc(true);
         break;
       case 'profile':
         setShowProfile(true);
         break;
-      case 'account':
-        setShowAccountModal(true);
-        break;
-      case 'alerts':
-      case 'pending':
-      case 'telegram':
-      case 'help':
-      case 'report':
-      case 'settings':
-        setFeatureView(view as FeatureViewType);
+      case 'transactions':
+        setShowTradesDrawer(true);
         break;
       default:
         break;
@@ -183,16 +152,11 @@ export default function App() {
 
   return (
     <div className="flex justify-center bg-slate-900 min-h-screen text-slate-800">
-      {/* Loading Screen on Initial Load */}
+      {/* Loading Screen on Initial Load (Screenshot 1: minimalist line-drawn logo) */}
       {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
 
-      {/* Main Responsive Device Container (Supports both authentic TradoWix Mobile Frame & Full-Screen Desktop Terminal) */}
-      <div
-        ref={shellRef}
-        className={`w-full ${
-          isFullWidth ? 'max-w-full' : 'max-w-md'
-        } mx-auto bg-white min-h-screen flex flex-col shadow-2xl relative overflow-hidden transition-all duration-300`}
-      >
+      {/* Main Responsive Device Container (Authentic TradoWix Mobile Size) */}
+      <div className="w-full max-w-md mx-auto bg-white min-h-screen flex flex-col shadow-2xl relative overflow-hidden">
         {/* Top Header */}
         <Header
           currentAsset={currentAsset}
@@ -205,8 +169,6 @@ export default function App() {
           onOpenAccountModal={() => setShowAccountModal(true)}
           onSwitchAccountType={switchAccountType}
           onResetDemoBalance={resetDemoBalance}
-          isFullWidth={isFullWidth}
-          onToggleFullWidth={() => setIsFullWidth(!isFullWidth)}
         />
 
         {/* Main Chart Canvas */}
@@ -242,7 +204,9 @@ export default function App() {
           openTradesCount={openTrades.length}
         />
 
-        {/* MODAL: Asset Selector Modal */}
+
+
+        {/* MODAL: Asset Selector Modal (Screenshot 6) */}
         {showAssetSelector && (
           <AssetSelectorModal
             assets={assets}
@@ -256,7 +220,7 @@ export default function App() {
           />
         )}
 
-        {/* MODAL: User Profile Popover / Drawer */}
+        {/* MODAL: User Profile Popover / Drawer (Screenshot 2) */}
         {showProfile && (
           <UserProfileModal
             user={user}
@@ -265,18 +229,15 @@ export default function App() {
           />
         )}
 
-        {/* MODAL: More Menu Drawer */}
+        {/* MODAL: More Menu Drawer (Screenshots 3 & 4) */}
         {showMoreMenu && (
           <MoreMenuModal
-            onClose={() => {
-              setShowMoreMenu(false);
-              setActiveTab('trade');
-            }}
+            onClose={() => setShowMoreMenu(false)}
             onNavigate={handleNavigateFromMenu}
           />
         )}
 
-        {/* MODAL: Deposit / Top Up Page */}
+        {/* MODAL: Deposit / Top Up Page (Screenshot 5) */}
         {showDeposit && (
           <DepositModal
             onClose={() => {
@@ -291,7 +252,7 @@ export default function App() {
           />
         )}
 
-        {/* MODAL: Portfolio / Trades Drawer */}
+        {/* MODAL: Portfolio / Trades Drawer (Screenshot 11) */}
         {showTradesDrawer && (
           <TradesDrawer
             openTrades={openTrades}
@@ -313,7 +274,7 @@ export default function App() {
           />
         )}
 
-        {/* MODAL: Account Switcher & Overview */}
+        {/* MODAL: Account Switcher & Overview (TradoWix Glass UI) */}
         <AccountModal
           user={user}
           isOpen={showAccountModal}
@@ -340,7 +301,7 @@ export default function App() {
           />
         )}
 
-        {/* MODAL: Weekly Leaderboard */}
+        {/* MODAL: Weekly Leaderboard (Screenshot 10) */}
         {showLeaderboard && (
           <LeaderboardModal
             userName={user.name}
@@ -386,7 +347,7 @@ export default function App() {
           />
         )}
 
-        {/* MODAL: Trade Result Settlement Card */}
+        {/* MODAL: Trade Result Settlement Card (Glass UI - No spam notifications) */}
         {lastFinishedTrade && (
           <TradeResultModal
             trade={lastFinishedTrade}
@@ -394,24 +355,12 @@ export default function App() {
           />
         )}
 
-        {/* MODAL: Full Screen Asset Information & Trading Conditions */}
+        {/* MODAL: Full Screen Asset Information & Trading Conditions (Screenshots 1, 3, 4, 11) */}
         {showAssetInfo && (
           <AssetInfoModal
             asset={currentAsset}
             currentPrice={currentPrice}
             onClose={() => setShowAssetInfo(false)}
-          />
-        )}
-
-        {/* MODAL: Additional Platform Features (Alerts, Pending, Telegram, Help, Report, Settings) */}
-        {featureView && (
-          <PlatformFeatureModal
-            view={featureView}
-            currentAsset={currentAsset}
-            currentPrice={currentPrice}
-            isFullWidth={isFullWidth}
-            onToggleFullWidth={() => setIsFullWidth(!isFullWidth)}
-            onClose={() => setFeatureView(null)}
           />
         )}
       </div>

@@ -1,7 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { X, Trophy, Shield, Info } from 'lucide-react';
 import { playClickSound } from '../utils/audio';
-import { useGsapModal, useGsapStagger } from '../utils/gsapAnimations';
 
 interface LeaderboardModalProps {
   onClose: () => void;
@@ -16,14 +15,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   userTradesCount = 0,
   userProfit = 0,
 }) => {
-  const [showRatingInfo, setShowRatingInfo] = useState(false);
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  useGsapModal(backdropRef, panelRef, 'up');
-  useGsapStagger(listRef, '.gsap-stagger-item', []);
-
   const leaders = [
     { rank: 1, name: 'Ishara Palihawadana', flag: '', shield: 'purple', profit: '+$30k+' },
     { rank: 2, name: 'Kabir Verma', flag: '', shield: 'purple', profit: '+$28,415' },
@@ -37,21 +28,15 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   ];
 
   return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl select-none overflow-hidden"
-    >
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/60 backdrop-blur-2xl animate-in fade-in duration-200 select-none overflow-hidden">
       {/* Full Screen Glass Container */}
-      <div
-        ref={panelRef}
-        className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative"
-      >
+      <div className="w-full h-full flex flex-col bg-white/92 backdrop-blur-3xl shadow-2xl overflow-hidden relative">
         {/* Soft pastel ambient background orbs */}
         <div className="absolute -top-20 -left-20 w-60 h-60 bg-pink-100/50 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-emerald-100/50 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Header */}
-        <div className="relative z-10 flex items-center justify-between px-4 sm:px-8 py-3.5 border-b border-slate-100/80 bg-white/50 backdrop-blur-sm">
+        {/* Header (Screenshot Capture+_2026-10-15-12-05-18.png) */}
+        <div className="relative z-10 flex items-center justify-between px-4 py-3.5 border-b border-slate-100/80 bg-white/50 backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 border border-amber-200/60 shadow-xs">
               <Trophy className="w-4 h-4" />
@@ -63,16 +48,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               playClickSound();
               onClose();
             }}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100/80 transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100/80 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div ref={listRef} className="relative z-10 p-4 sm:p-8 max-w-3xl mx-auto w-full overflow-y-auto space-y-3 custom-scrollbar">
-          {/* User top rating card */}
-          <div className="gsap-stagger-item p-3.5 bg-white/80 backdrop-blur-md rounded-2xl border border-white/80 shadow-xs flex flex-col gap-2">
+        <div className="relative z-10 p-4 overflow-y-auto space-y-3">
+          {/* User top rating card (Screenshot 10) */}
+          <div className="p-3.5 bg-white/80 backdrop-blur-md rounded-2xl border border-white/80 shadow-xs flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#6366f1] text-white flex items-center justify-center font-black text-lg shadow-sm">
@@ -100,22 +85,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                playClickSound();
-                setShowRatingInfo(!showRatingInfo);
-              }}
-              className="flex items-center gap-1 text-[11px] text-indigo-500 hover:text-indigo-600 font-medium cursor-pointer pt-1 border-t border-slate-100/60 text-left"
-            >
+            <div className="flex items-center gap-1 text-[11px] text-indigo-500 hover:text-indigo-600 font-medium cursor-pointer pt-1 border-t border-slate-100/60">
               <Info className="w-3.5 h-3.5" />
               <span>How does this rating work?</span>
-            </button>
-
-            {showRatingInfo && (
-              <div className="p-2.5 bg-indigo-50/70 rounded-xl text-[11px] text-indigo-900 leading-relaxed">
-                Rankings update in real time based on net profitable trades executed within the 24-hour trading window across all OTC and Forex pairs.
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Table Header Row */}
@@ -133,7 +106,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               return (
                 <div
                   key={leader.rank}
-                  className="gsap-stagger-item flex items-center justify-between px-3 py-3 hover:bg-slate-50/50 transition-colors"
+                  className="flex items-center justify-between px-3 py-3 hover:bg-slate-50/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     {/* Rank indicator */}
